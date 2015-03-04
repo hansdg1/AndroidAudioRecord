@@ -164,9 +164,16 @@ public class AndroidAudioRecordActivity extends Activity {
 		File file = new File(Environment.getExternalStorageDirectory(), "test.pcm");
 		
         int shortSizeInBytes = Short.SIZE/Byte.SIZE;
-		
+
+        int selectedPos = spFrequency.getSelectedItemPosition();
+        int sampleFreq = freqset[selectedPos];
+
+        int delayMilliseconds = 250; // half a second
+        int delaySamples = (int)((float)delayMilliseconds * sampleFreq / 1000); //should be 44.1 not 441000
+        float decay = 0.25f;
 		int bufferSizeInBytes = (int)(file.length()/shortSizeInBytes);
-		short[] audioData = new short[bufferSizeInBytes];
+
+		short[] audioData = new short[bufferSizeInBytes + delaySamples];
 		
 		try {
 			InputStream inputStream = new FileInputStream(file);
@@ -174,15 +181,14 @@ public class AndroidAudioRecordActivity extends Activity {
 			DataInputStream dataInputStream = new DataInputStream(bufferedInputStream);
 			
 			int i = 0;
-			while(dataInputStream.available() > 0){
-				audioData[i] = dataInputStream.readShort();
-				i++;
-			}
-			
+			while(dataInputStream.available() > 0) {
+                audioData[i] += dataInputStream.readShort();
+                //Do the reverb
+                audioData[ i + delaySamples] += (short)((float)audioData[i] * decay);
+                i++;
+            }
+
 			dataInputStream.close();
-			
-			int selectedPos = spFrequency.getSelectedItemPosition();
-			int sampleFreq = freqset[selectedPos];
 
 			final String promptPlayRecord = 
 					"PlayRecord()\n"
